@@ -1,8 +1,26 @@
 import MLR from 'ml-regression-multivariate-linear';
 import ff5Data from '../data/ff5_daily.json';
 
-// Simple CORS proxy to bypass browser restrictions
-const CORS_PROXY = 'https://corsproxy.io/?';
+const YAHOO_PROXY_BUILDERS = [
+  (url) => url,
+  (url) => `https://r.jina.ai/http://r.jina.ai/http://${url}`,
+  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+];
+
+async function readYahooResponse(response) {
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    const marker = "Markdown Content:";
+    const markerIndex = text.indexOf(marker);
+    if (markerIndex === -1) throw new Error("Response was not JSON");
+
+    const jsonText = text.slice(markerIndex + marker.length).trim();
+    return JSON.parse(jsonText);
+  }
+}
 
 /**
  * Fetches historical daily stock prices from Yahoo Finance.
@@ -10,15 +28,31 @@ const CORS_PROXY = 'https://corsproxy.io/?';
  * @param {string} period1 Start timestamp (seconds)
  * @param {string} period2 End timestamp (seconds)
  */
-async function fetchYahooFinanceData(ticker, period1, period2) {
-  const url = `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${period1}&period2=${period2}&interval=1d&events=history`;
-  const response = await fetch(CORS_PROXY + encodeURIComponent(url));
-  
-  if (!response.ok) {
-    throw new Error(`Failed to fetch data for ${ticker}`);
+export async function fetchYahooFinanceData(ticker, period1, period2) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${period1}&period2=${period2}&interval=1d&events=history`;
+  let data = null;
+  let lastError = null;
+
+  for (const buildUrl of YAHOO_PROXY_BUILDERS) {
+    try {
+      const fetchUrl = buildUrl(url);
+      if (!fetchUrl) continue;
+      const response = await fetch(fetchUrl);
+      if (!response.ok) {
+        lastError = new Error(`HTTP ${response.status}`);
+        continue;
+      }
+      data = await readYahooResponse(response);
+      break;
+    } catch (error) {
+      lastError = error;
+    }
   }
 
-  const data = await response.json();
+  if (!data) {
+    throw new Error(`Failed to fetch data for ${ticker}${lastError ? ` (${lastError.message})` : ''}`);
+  }
+
   if (!data.chart.result || data.chart.result.length === 0) {
     throw new Error(`No data found for ${ticker}`);
   }

@@ -18,7 +18,7 @@ function ProgressTracker({ phase, elapsed, error }) {
   return (
     <div style={{
       background: "var(--card)", borderRadius: 14,
-      border: `1px solid ${error ? "#E8453C44" : "var(--divider)"}`,
+      border: `1px solid ${error ? "rgba(255,59,48,0.34)" : "var(--divider)"}`,
       padding: 24, marginBottom: 20,
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
@@ -26,15 +26,15 @@ function ProgressTracker({ phase, elapsed, error }) {
           {!error && (
             <div style={{
               width: 18, height: 18, border: "2.5px solid var(--divider)",
-              borderTopColor: "#E8453C", borderRadius: "50%",
+              borderTopColor: "var(--accent)", borderRadius: "50%",
               animation: "spin 0.8s linear infinite",
             }} />
           )}
           <span style={{
             fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 600,
-            color: error ? "#E8453C" : "var(--text-primary)",
+            color: error ? "var(--danger)" : "var(--text-primary)",
           }}>
-            {error ? "Request failed" : "Calculating…"}
+            {error ? "Request failed" : "Calculating..."}
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -47,7 +47,7 @@ function ProgressTracker({ phase, elapsed, error }) {
           {!error && (
             <span style={{
               fontFamily: "'JetBrains Mono', monospace", fontSize: 11,
-              color: remaining < 15 ? "#F59E0B" : "var(--text-muted)",
+              color: remaining < 15 ? "var(--warning)" : "var(--text-muted)",
             }}>
               timeout {remaining}s
             </span>
@@ -61,7 +61,7 @@ function ProgressTracker({ phase, elapsed, error }) {
       }}>
         <div style={{
           height: "100%", borderRadius: 2,
-          background: error ? "#E8453C" : elapsed < TIMEOUT_SEC * 0.7 ? "#E8453C" : "#F59E0B",
+          background: error ? "var(--danger)" : elapsed < TIMEOUT_SEC * 0.7 ? "var(--accent)" : "var(--warning)",
           width: `${pct}%`,
           transition: "width 0.3s linear",
         }} />
@@ -80,22 +80,22 @@ function ProgressTracker({ phase, elapsed, error }) {
                 <div style={{
                   width: isActive ? 11 : 9, height: isActive ? 11 : 9,
                   borderRadius: "50%", flexShrink: 0, marginTop: 5,
-                  background: isFailed ? "#E8453C" : isComplete ? "#10B981" : isActive ? "#E8453C" : "#2D333B",
-                  boxShadow: isActive && !isFailed ? "0 0 8px #E8453C88" : "none",
+                  background: isFailed ? "var(--danger)" : isComplete ? "var(--success)" : isActive ? "var(--accent)" : "rgba(35,43,58,0.18)",
+                  boxShadow: isActive && !isFailed ? "0 0 14px rgba(0,122,255,0.34)" : "none",
                   transition: "all 0.3s",
                 }} />
                 {i < steps.length - 1 && (
-                  <div style={{ width: 2, flex: 1, minHeight: 8, background: isComplete ? "#10B98155" : "#2D333B", transition: "background 0.3s" }} />
+                  <div style={{ width: 2, flex: 1, minHeight: 8, background: isComplete ? "rgba(52,199,89,0.34)" : "rgba(35,43,58,0.18)", transition: "background 0.3s" }} />
                 )}
               </div>
               <span style={{
                 fontFamily: "'DM Sans', sans-serif", fontSize: 13,
                 fontWeight: isActive ? 600 : 400, paddingTop: 2, paddingLeft: 6,
-                color: isFailed ? "#E8453C" : isComplete ? "#10B981" : isActive ? "var(--text-primary)" : "var(--text-muted)",
+                color: isFailed ? "var(--danger)" : isComplete ? "var(--success)" : isActive ? "var(--text-primary)" : "var(--text-muted)",
                 opacity: isPending ? 0.35 : 1, transition: "all 0.3s",
               }}>
-                {isComplete ? "✓ " : ""}{s.label}
-                {isActive && !isFailed && <span style={{ animation: "pulse 1.5s ease-in-out infinite" }}> …</span>}
+                {isComplete ? "Done: " : ""}{s.label}
+                {isActive && !isFailed && <span style={{ animation: "pulse 1.5s ease-in-out infinite" }}> ...</span>}
               </span>
             </div>
           );
@@ -122,7 +122,7 @@ function FactorBar({ factorKey, value, maxAbsVal, delay }) {
     <div style={{ opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(12px)", transition: "all 0.5s cubic-bezier(0.22,1,0.36,1)", marginBottom: 20 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 16 }}>{meta.icon}</span>
+          <span style={{ width: 22, height: 22, borderRadius: 999, background: `${meta.color}18`, color: meta.color, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800 }}>{meta.icon}</span>
           <span style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: 14, color: "var(--text-primary)" }}>{meta.label}</span>
         </div>
         <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 15, fontWeight: 700, color: meta.color }}>
@@ -252,7 +252,7 @@ export default function FamaFrench5Factor() {
         {/* Sub-header */}
         <div style={{ marginBottom: 24 }}>
           <h1 style={{ fontSize: 20, fontWeight: 700, margin: 0, letterSpacing: "-0.02em" }}>
-            Fama–French 5-Factor Model
+            Fama-French 5-Factor Model
           </h1>
           <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "4px 0 0" }}>
             Authentic Local Calculation via Multivariate Linear Regression
@@ -302,15 +302,15 @@ export default function FamaFrench5Factor() {
               {loading ? (
                 <button onClick={cancel} style={{
                   padding: "10px 22px", background: "transparent",
-                  border: "1px solid #E8453C66", borderRadius: 8, color: "#E8453C",
+                  border: "1px solid rgba(255,59,48,0.36)", borderRadius: 8, color: "var(--danger)",
                   fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 600, cursor: "pointer",
                 }}>Cancel</button>
               ) : (
                 <button onClick={analyze} disabled={!symbol.trim()} style={{
                   padding: "10px 28px",
-                  background: !symbol.trim() ? "#30363D" : "linear-gradient(135deg, #E8453C, #D63A31)",
+                  background: !symbol.trim() ? "rgba(113,122,140,0.22)" : "linear-gradient(135deg, var(--accent), var(--accent-2))",
                   border: "none", borderRadius: 8,
-                  color: !symbol.trim() ? "#7D8590" : "#fff",
+                  color: !symbol.trim() ? "var(--text-muted)" : "#fff",
                   fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 600,
                   cursor: !symbol.trim() ? "not-allowed" : "pointer",
                 }}>Calculate</button>
@@ -324,19 +324,19 @@ export default function FamaFrench5Factor() {
         )}
 
         {error && (
-          <div style={{ background: "#E8453C18", border: "1px solid #E8453C44", borderRadius: 14, padding: 20, marginBottom: 24 }}>
-            <p style={{ margin: 0, fontSize: 14, color: "#E8453C", fontWeight: 500 }}>⚠ {error}</p>
+          <div style={{ background: "rgba(255,59,48,0.1)", border: "1px solid rgba(255,59,48,0.28)", borderRadius: 14, padding: 20, marginBottom: 24 }}>
+            <p style={{ margin: 0, fontSize: 14, color: "var(--danger)", fontWeight: 500 }}>Warning: {error}</p>
           </div>
         )}
 
         {result && (
           <>
             <div style={{
-              background: "#10B98112", border: "1px solid #10B98133",
+              background: "rgba(52,199,89,0.12)", border: "1px solid rgba(52,199,89,0.28)",
               borderRadius: 14, padding: "14px 20px", marginBottom: 20,
               display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8,
             }}>
-              <span style={{ fontSize: 13, color: "#10B981", fontWeight: 500 }}>
+              <span style={{ fontSize: 13, color: "var(--success)", fontWeight: 600 }}>
                 Calculation completed in {elapsed.toFixed(1)}s
               </span>
             </div>
@@ -345,22 +345,22 @@ export default function FamaFrench5Factor() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
                 <div>
                   <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, letterSpacing: "-0.02em" }}>{result.ticker}</h2>
-                  <p style={{ margin: "4px 0 0", fontSize: 14, color: "var(--text-muted)" }}>{result.company_name} · {result.sector}</p>
+                  <p style={{ margin: "4px 0 0", fontSize: 14, color: "var(--text-muted)" }}>{result.company_name} - {result.sector}</p>
                 </div>
                 <div style={{ background: "var(--card-inner)", borderRadius: 8, padding: "6px 14px", fontFamily: "'JetBrains Mono', monospace", fontSize: 12, color: "var(--text-muted)" }}>
-                  {result.market_cap_category} · {result.market}
+                  {result.market_cap_category} - {result.market}
                 </div>
               </div>
             </div>
 
             <div style={{ display: "flex", gap: 12, marginBottom: 20, flexWrap: "wrap" }}>
-              <StatCard label="Alpha (α)" value={`${(result.alpha * 100).toFixed(2)}%`} sub="Annualized" />
+              <StatCard label="Alpha" value={`${(result.alpha * 100).toFixed(2)}%`} sub="Annualized" />
               <StatCard label="R-Squared"   value={result.r_squared.toFixed(3)}          sub="Model fit" />
               <StatCard label="Market Beta" value={result.factors.market.toFixed(3)}     sub="Systematic risk" />
             </div>
 
             <div style={{ background: "var(--card)", borderRadius: 14, border: "1px solid var(--divider)", padding: 24, marginBottom: 20 }}>
-              <h3 style={{ margin: "0 0 20px", fontSize: 15, fontWeight: 600 }}>Factor Loadings (β)</h3>
+              <h3 style={{ margin: "0 0 20px", fontSize: 15, fontWeight: 600 }}>Factor Loadings</h3>
               {Object.keys(FACTOR_META).map((key, i) => (
                 <FactorBar key={key} factorKey={key} value={result.factors[key]} maxAbsVal={maxAbsVal} delay={i * 120} />
               ))}
@@ -388,7 +388,7 @@ export default function FamaFrench5Factor() {
 
         {!loading && !result && !error && (
           <div style={{ textAlign: "center", padding: "48px 24px", color: "var(--text-muted)" }}>
-            <div style={{ fontSize: 40, marginBottom: 12, opacity: 0.4 }}>📊</div>
+            <div style={{ width: 48, height: 48, margin: "0 auto 12px", borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,0.62)", border: "1px solid rgba(255,255,255,0.72)", color: "var(--accent)", fontWeight: 800 }}>F5</div>
             <p style={{ fontSize: 14, margin: 0 }}>Enter a ticker symbol and select a market to begin</p>
             <p style={{ fontSize: 12, margin: "8px 0 0", opacity: 0.6 }}>
               Try AAPL, MSFT, TSLA, BRK.B, JNJ, or any publicly traded stock

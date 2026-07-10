@@ -24,8 +24,8 @@ function SortableHeader({ label, sortKey, currentSort, onSort }) {
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         {label}
         {isActive && (
-          <span style={{ color: "#E8453C", fontSize: 14, lineHeight: 1 }}>
-            {currentSort.direction === 'asc' ? '↑' : '↓'}
+          <span style={{ color: "var(--accent)", fontSize: 10, lineHeight: 1, fontWeight: 800 }}>
+            {currentSort.direction === 'asc' ? 'ASC' : 'DESC'}
           </span>
         )}
       </div>
@@ -144,7 +144,7 @@ export default function FF5RankingBoard() {
                   {completedCount} / {SP500_TOP50.length} completed
                 </div>
                 <div style={{ width: 120, height: 6, background: "var(--card-inner)", borderRadius: 3, overflow: "hidden" }}>
-                  <div style={{ width: `${progressPct}%`, height: "100%", background: "#10B981", transition: "width 0.3s" }} />
+                  <div style={{ width: `${progressPct}%`, height: "100%", background: "linear-gradient(90deg, var(--success), var(--accent-2))", transition: "width 0.3s" }} />
                 </div>
               </div>
             ) : null}
@@ -152,16 +152,16 @@ export default function FF5RankingBoard() {
             {isCalculatingAll ? (
               <button onClick={cancelCalculateAll} style={{
                 padding: "8px 16px", background: "transparent",
-                border: "1px solid #E8453C66", borderRadius: 8, color: "#E8453C",
+                border: "1px solid rgba(255,59,48,0.36)", borderRadius: 8, color: "var(--danger)",
                 fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer",
                 transition: "all 0.2s"
               }}>Stop Analysis</button>
             ) : (
               <button onClick={calculateAll} style={{
                 padding: "8px 20px",
-                background: completedCount === SP500_TOP50.length ? "#30363D" : "linear-gradient(135deg, #E8453C, #D63A31)",
+                background: completedCount === SP500_TOP50.length ? "rgba(113,122,140,0.22)" : "linear-gradient(135deg, var(--accent), var(--accent-2))",
                 border: "none", borderRadius: 8,
-                color: completedCount === SP500_TOP50.length ? "#7D8590" : "#fff",
+                color: completedCount === SP500_TOP50.length ? "var(--text-muted)" : "#fff",
                 fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600,
                 cursor: completedCount === SP500_TOP50.length ? "not-allowed" : "pointer",
                 transition: "all 0.2s"
@@ -209,7 +209,7 @@ export default function FF5RankingBoard() {
                     
                     {res ? (
                       <>
-                        <td style={{ padding: "14px 16px", fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 500, color: res.alpha > 0 ? "#10B981" : "#E8453C" }}>
+                        <td style={{ padding: "14px 16px", fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 500, color: res.alpha > 0 ? "var(--success)" : "var(--danger)" }}>
                           {(res.alpha * 100).toFixed(2)}%
                         </td>
                         <td style={{ padding: "14px 16px", fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: "var(--text-primary)" }}>{res.factors.market.toFixed(2)}</td>
@@ -221,7 +221,7 @@ export default function FF5RankingBoard() {
                       </>
                     ) : (
                       <td colSpan={7} style={{ padding: "14px 16px", textAlign: "center", color: "var(--text-muted)", fontSize: 13, opacity: 0.6 }}>
-                        {status === 'loading' ? 'Calculating...' : status === 'error' ? <span style={{color: "#E8453C"}}>Failed</span> : '-'}
+                        {status === 'loading' ? 'Calculating...' : status === 'error' ? <span style={{ color: "var(--danger)" }}>Failed</span> : '-'}
                       </td>
                     )}
                     
@@ -242,7 +242,7 @@ export default function FF5RankingBoard() {
                       {status === 'loading' && (
                         <div style={{
                           width: 14, height: 14, border: "2px solid var(--divider)",
-                          borderTopColor: "#E8453C", borderRadius: "50%",
+                          borderTopColor: "var(--accent)", borderRadius: "50%",
                           animation: "spin 0.8s linear infinite",
                           display: "inline-block", verticalAlign: "middle"
                         }} />
