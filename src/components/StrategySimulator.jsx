@@ -98,9 +98,9 @@ function StrategyConfigCard({ config, index, canRemove, onChange, onRemove, onDu
   const update = (patch) => onChange(config.id, patch);
 
   return (
-    <div style={{ background: "var(--card-inner)", border: `1px solid ${config.color}66`, borderRadius: 10, padding: 14 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, minWidth: 0 }}>
+    <div style={{ background: "var(--card-inner)", border: `1px solid ${config.color}66`, borderRadius: 10, padding: 14, width: "100%", maxWidth: "100%", overflow: "hidden" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "start", gap: 10, marginBottom: 12, maxWidth: "100%" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "30px minmax(0, 1fr)", alignItems: "center", gap: 9, minWidth: 0 }}>
           <input
             type="color"
             value={config.color}
@@ -108,7 +108,7 @@ function StrategyConfigCard({ config, index, canRemove, onChange, onRemove, onDu
             aria-label={`${config.name} color`}
             style={{ width: 30, height: 30, border: "none", background: "transparent", padding: 0, flexShrink: 0 }}
           />
-          <div style={{ minWidth: 0 }}>
+          <div style={{ minWidth: 0, maxWidth: "100%" }}>
             <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Custom Strategy {index + 1}</div>
             {config.collapsed ? (
               <div style={{ marginTop: 4, fontSize: 13, fontWeight: 800, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -118,12 +118,12 @@ function StrategyConfigCard({ config, index, canRemove, onChange, onRemove, onDu
               <input
                 value={config.name}
                 onChange={(event) => update({ name: event.target.value })}
-                style={{ ...inputStyle, padding: "7px 8px", marginTop: 5, fontFamily: "'DM Sans', sans-serif", fontWeight: 700 }}
+                style={{ ...inputStyle, minWidth: 0, padding: "7px 8px", marginTop: 5, fontFamily: "'DM Sans', sans-serif", fontWeight: 700 }}
               />
             )}
           </div>
         </div>
-        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", flexWrap: "wrap", minWidth: 0, maxWidth: 134 }}>
           <button type="button" onClick={() => update({ collapsed: !config.collapsed })} style={miniButtonStyle}>
             {config.collapsed ? "Open" : "Hide"}
           </button>
@@ -133,8 +133,8 @@ function StrategyConfigCard({ config, index, canRemove, onChange, onRemove, onDu
       </div>
 
       {config.collapsed ? (
-        <div style={{ display: "grid", gap: 5, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.4 }}>
-          <div><strong style={{ color: "var(--text-primary)" }}>{baseStrategy.name}</strong> on <strong style={{ color: "var(--text-primary)" }}>{config.ticker}</strong></div>
+        <div style={{ display: "grid", gap: 5, minWidth: 0, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.4 }}>
+          <div style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}><strong style={{ color: "var(--text-primary)" }}>{baseStrategy.name}</strong> on <strong style={{ color: "var(--text-primary)" }}>{config.ticker}</strong></div>
           <div>{formatMoney(Number(config.initialCapital) || 0)} initial, {formatMoney(Number(config.recurringAmount) || 0)} {config.recurringFrequency}, AC: {altAsset.label}, AC sell {Number(config.altCashSellMultiplier || 1).toFixed(2)}x, fee {Number(config.expenseRatio || 0).toFixed(2)}%</div>
         </div>
       ) : (
@@ -822,7 +822,7 @@ export default function StrategySimulator() {
         `}</style>
 
         <div className="strategy-layout">
-          <section style={{ background: "var(--card)", border: "1px solid var(--divider)", borderRadius: 12, padding: 18 }}>
+          <section style={{ background: "var(--card)", border: "1px solid var(--divider)", borderRadius: 12, padding: 18, minWidth: 0, overflow: "hidden" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 14 }}>
               <h2 style={{ fontSize: 14, margin: 0, fontWeight: 700 }}>Custom Strategy Configs</h2>
               <button type="button" onClick={addStrategyConfig} style={miniButtonStyle}>Add</button>
@@ -841,7 +841,7 @@ export default function StrategySimulator() {
               Each config can use a different ticker, base strategy, contribution schedule, AC sleeve, and color.
             </p>
 
-            <div style={{ display: "grid", gap: 12, marginBottom: 16 }}>
+            <div style={{ display: "grid", gap: 12, marginBottom: 16, minWidth: 0 }}>
               {strategyConfigs.map((config, index) => (
                 <StrategyConfigCard
                   key={config.id}
@@ -979,9 +979,11 @@ const miniButtonStyle = {
   color: "var(--text-primary)",
   fontSize: 11,
   fontWeight: 700,
-  padding: "6px 8px",
+  minWidth: 38,
+  padding: "6px 7px",
   cursor: "pointer",
   fontFamily: "'DM Sans', sans-serif",
+  whiteSpace: "nowrap",
 };
 
 const fieldLabelStyle = {
