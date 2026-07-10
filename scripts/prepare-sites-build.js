@@ -14,7 +14,7 @@ fs.copyFileSync(
   path.join(openAiDir, "hosting.json")
 );
 
-const serverSource = `const INDEX_PATH = "/index.html";
+const serverSource = `const INDEX_PATHS = ["/index.html", "/client/index.html"];
 
 function withPath(request, pathname) {
   const url = new URL(request.url);
@@ -37,7 +37,10 @@ export default {
 
     const accept = request.headers.get("accept") || "";
     if (request.method === "GET" && accept.includes("text/html")) {
-      return fetchAsset(withPath(request, INDEX_PATH), env);
+      for (const indexPath of INDEX_PATHS) {
+        const indexResponse = await fetchAsset(withPath(request, indexPath), env);
+        if (indexResponse.status !== 404) return indexResponse;
+      }
     }
 
     return response;
