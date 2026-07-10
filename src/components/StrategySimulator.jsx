@@ -91,6 +91,89 @@ function StrategyToggle({ strategy, selected, onToggle }) {
   );
 }
 
+function AssetPresetPicker({ ticker, onPick }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const activePreset = MARKET_INDEX_PRESETS.find(
+    (asset) => asset.symbol.toUpperCase() === ticker.trim().toUpperCase(),
+  );
+
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      <button
+        type="button"
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((open) => !open)}
+        style={{
+          ...inputStyle,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          minHeight: 40,
+          textAlign: "left",
+          cursor: "pointer",
+        }}
+      >
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {activePreset ? activePreset.label : "Custom ticker"}
+        </span>
+        <span style={{ color: "var(--accent)", fontSize: 12, fontWeight: 650, flexShrink: 0 }}>
+          {isOpen ? "Done" : "Choose"}
+        </span>
+      </button>
+
+      {isOpen && (
+        <div
+          role="listbox"
+          aria-label="Asset presets"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            gap: 5,
+            maxHeight: 198,
+            overflowY: "auto",
+            padding: 6,
+            border: "1px solid rgba(255,255,255,0.76)",
+            borderRadius: 9,
+            background: "rgba(255,255,255,0.48)",
+            boxShadow: "inset 0 1px 0 rgba(255,255,255,0.72)",
+          }}
+        >
+          <button
+            type="button"
+            role="option"
+            aria-selected={!activePreset}
+            onClick={() => setIsOpen(false)}
+            style={{ ...presetOptionStyle, gridColumn: "1 / -1", background: !activePreset ? "rgba(0,122,255,0.12)" : "rgba(255,255,255,0.36)" }}
+          >
+            Keep custom ticker
+          </button>
+          {MARKET_INDEX_PRESETS.map((asset) => {
+            const isSelected = activePreset?.symbol === asset.symbol;
+            return (
+              <button
+                key={asset.symbol}
+                type="button"
+                role="option"
+                aria-selected={isSelected}
+                onClick={() => {
+                  onPick(asset.symbol);
+                  setIsOpen(false);
+                }}
+                title={`${asset.label} (${asset.symbol})`}
+                style={{ ...presetOptionStyle, background: isSelected ? "rgba(0,122,255,0.12)" : "rgba(255,255,255,0.36)" }}
+              >
+                <span style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{asset.label}</span>
+                <span style={{ display: "block", marginTop: 2, fontSize: 10, color: "var(--text-muted)" }}>{asset.symbol}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StrategyConfigCard({ config, index, canRemove, onChange, onRemove, onDuplicate }) {
   const baseStrategy = STRATEGIES.find((strategy) => strategy.key === config.strategyKey) || STRATEGIES[0];
   const altAsset = ALT_CASH_ASSETS.find((asset) => asset.key === config.altCashAsset) || ALT_CASH_ASSETS[0];
@@ -98,8 +181,8 @@ function StrategyConfigCard({ config, index, canRemove, onChange, onRemove, onDu
   const update = (patch) => onChange(config.id, patch);
 
   return (
-    <div style={{ background: "var(--card-inner)", border: `1px solid ${config.color}66`, borderRadius: 10, padding: 14, width: "100%", maxWidth: "100%", overflow: "hidden" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "start", gap: 10, marginBottom: 12, maxWidth: "100%" }}>
+    <div style={{ background: "rgba(255,255,255,0.28)", border: `1px solid ${config.color}55`, borderRadius: 10, padding: 12, width: "100%", maxWidth: "100%", overflow: "hidden", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.7)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "start", gap: 8, marginBottom: 12, maxWidth: "100%" }}>
         <div style={{ display: "grid", gridTemplateColumns: "30px minmax(0, 1fr)", alignItems: "center", gap: 9, minWidth: 0 }}>
           <input
             type="color"
@@ -109,7 +192,7 @@ function StrategyConfigCard({ config, index, canRemove, onChange, onRemove, onDu
             style={{ width: 30, height: 30, border: "none", background: "transparent", padding: 0, flexShrink: 0 }}
           />
           <div style={{ minWidth: 0, maxWidth: "100%" }}>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Custom Strategy {index + 1}</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 650 }}>Strategy {index + 1}</div>
             {config.collapsed ? (
               <div style={{ marginTop: 4, fontSize: 13, fontWeight: 800, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {config.name}
@@ -118,7 +201,7 @@ function StrategyConfigCard({ config, index, canRemove, onChange, onRemove, onDu
               <input
                 value={config.name}
                 onChange={(event) => update({ name: event.target.value })}
-                style={{ ...inputStyle, minWidth: 0, padding: "7px 8px", marginTop: 5, fontFamily: "'DM Sans', sans-serif", fontWeight: 700 }}
+                style={{ ...inputStyle, minWidth: 0, padding: "7px 8px", marginTop: 4, fontWeight: 650 }}
               />
             )}
           </div>
@@ -128,7 +211,7 @@ function StrategyConfigCard({ config, index, canRemove, onChange, onRemove, onDu
             {config.collapsed ? "Open" : "Hide"}
           </button>
           <button type="button" onClick={() => onDuplicate(config.id)} style={miniButtonStyle}>Copy</button>
-          <button type="button" onClick={() => onRemove(config.id)} disabled={!canRemove} style={{ ...miniButtonStyle, opacity: canRemove ? 1 : 0.45, cursor: canRemove ? "pointer" : "not-allowed" }}>Del</button>
+          <button type="button" onClick={() => onRemove(config.id)} disabled={!canRemove} style={{ ...miniButtonStyle, color: canRemove ? "var(--danger)" : "var(--text-muted)", opacity: canRemove ? 1 : 0.45, cursor: canRemove ? "pointer" : "not-allowed" }}>Del</button>
         </div>
       </div>
 
@@ -140,7 +223,7 @@ function StrategyConfigCard({ config, index, canRemove, onChange, onRemove, onDu
       ) : (
         <>
       <label style={{ display: "block", marginBottom: 10 }}>
-        <span style={fieldLabelStyle}>Base Strategy</span>
+        <span style={fieldLabelStyle}>Strategy</span>
         <select
           value={config.strategyKey}
           onChange={(event) => {
@@ -159,34 +242,23 @@ function StrategyConfigCard({ config, index, canRemove, onChange, onRemove, onDu
         <span style={{ display: "block", marginTop: 5, fontSize: 11.5, color: "var(--text-muted)", lineHeight: 1.35 }}>{baseStrategy.description}</span>
       </label>
 
-      <label style={{ display: "block", marginBottom: 10 }}>
-        <span style={fieldLabelStyle}>Asset Preset</span>
-        <select
-          value=""
-          onChange={(event) => {
-            if (event.target.value) update({ ticker: event.target.value });
-          }}
-          style={inputStyle}
-        >
-          <option value="">Keep custom ticker</option>
-          {MARKET_INDEX_PRESETS.map((asset) => (
-            <option key={asset.symbol} value={asset.symbol}>{asset.label} ({asset.symbol})</option>
-          ))}
-        </select>
-      </label>
+      <div style={{ display: "block", marginBottom: 10 }}>
+        <span style={fieldLabelStyle}>Quick asset</span>
+        <AssetPresetPicker ticker={config.ticker} onPick={(ticker) => update({ ticker })} />
+      </div>
 
       <label style={{ display: "block", marginBottom: 10 }}>
-        <span style={fieldLabelStyle}>Ticker / Asset</span>
+        <span style={fieldLabelStyle}>Ticker</span>
         <input value={config.ticker} onChange={(event) => update({ ticker: event.target.value })} style={inputStyle} />
       </label>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
         <label>
-          <span style={fieldLabelStyle}>Initial</span>
+          <span style={fieldLabelStyle}>Start</span>
           <input type="number" min="0" step="100" value={config.initialCapital} onChange={(event) => update({ initialCapital: event.target.value })} style={inputStyle} />
         </label>
         <label>
-          <span style={fieldLabelStyle}>Recurring</span>
+          <span style={fieldLabelStyle}>Add</span>
           <input type="number" min="0" step="25" value={config.recurringAmount} onChange={(event) => update({ recurringAmount: event.target.value })} style={inputStyle} />
         </label>
       </div>
@@ -201,7 +273,7 @@ function StrategyConfigCard({ config, index, canRemove, onChange, onRemove, onDu
           </select>
         </label>
         <label>
-          <span style={fieldLabelStyle}>AC Sleeve</span>
+          <span style={fieldLabelStyle}>Cash sleeve</span>
           <select value={config.altCashAsset} onChange={(event) => update({ altCashAsset: event.target.value })} style={inputStyle}>
             {ALT_CASH_ASSETS.map((asset) => (
               <option key={asset.key} value={asset.key}>{asset.label}</option>
@@ -210,7 +282,7 @@ function StrategyConfigCard({ config, index, canRemove, onChange, onRemove, onDu
         </label>
       </div>
       <label style={{ display: "block", marginTop: 10 }}>
-        <span style={fieldLabelStyle}>AC Sell Aggression</span>
+        <span style={fieldLabelStyle}>Sell sensitivity</span>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 62px", gap: 10, alignItems: "center" }}>
           <input
             type="range"
@@ -232,11 +304,11 @@ function StrategyConfigCard({ config, index, canRemove, onChange, onRemove, onDu
           />
         </div>
         <span style={{ display: "block", marginTop: 5, fontSize: 11.5, color: "var(--text-muted)", lineHeight: 1.35 }}>
-          1.00x uses the baseline AC sell table. Higher values sell AC more aggressively on dip-buy signals.
+          1.00x uses the default sell table. Increase for faster AC selling on dip-buy signals.
         </span>
       </label>
       <label style={{ display: "block", marginTop: 10 }}>
-        <span style={fieldLabelStyle}>ETF Fee / Expense Ratio</span>
+        <span style={fieldLabelStyle}>Annual fee %</span>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 70px", gap: 10, alignItems: "center" }}>
           <input
             type="range"
@@ -258,7 +330,7 @@ function StrategyConfigCard({ config, index, canRemove, onChange, onRemove, onDu
           />
         </div>
         <span style={{ display: "block", marginTop: 5, fontSize: 11.5, color: "var(--text-muted)", lineHeight: 1.35 }}>
-          Annual fee percentage. Example: QQQ is about 0.20, SPY is about 0.09.
+          QQQ is about 0.20; SPY is about 0.09.
         </span>
       </label>
       </>
@@ -801,7 +873,7 @@ export default function StrategySimulator() {
             </p>
           </div>
           {lastUpdated && (
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: "var(--text-muted)", background: "var(--card)", border: "1px solid var(--divider)", borderRadius: 7, padding: "7px 10px" }}>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", background: "var(--card)", border: "1px solid var(--divider)", borderRadius: 7, padding: "7px 10px" }}>
               refreshed {lastUpdated}
             </div>
           )}
@@ -822,9 +894,9 @@ export default function StrategySimulator() {
         `}</style>
 
         <div className="strategy-layout">
-          <section style={{ background: "var(--card)", border: "1px solid var(--divider)", borderRadius: 12, padding: 18, minWidth: 0, overflow: "hidden" }}>
+          <section style={{ background: "var(--card)", border: "1px solid rgba(255,255,255,0.76)", borderRadius: 12, padding: 16, minWidth: 0, overflow: "hidden", boxShadow: "0 18px 44px rgba(28,39,57,0.08), inset 0 1px 0 rgba(255,255,255,0.82)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 14 }}>
-              <h2 style={{ fontSize: 14, margin: 0, fontWeight: 700 }}>Custom Strategy Configs</h2>
+              <h2 style={{ fontSize: 15, margin: 0, fontWeight: 700 }}>Strategies</h2>
               <button type="button" onClick={addStrategyConfig} style={miniButtonStyle}>Add</button>
             </div>
             <label style={{ display: "block", marginBottom: 12 }}>
@@ -838,7 +910,7 @@ export default function StrategySimulator() {
               />
             </label>
             <p style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.45, margin: "0 0 14px" }}>
-              Each config can use a different ticker, base strategy, contribution schedule, AC sleeve, and color.
+              Each strategy can have its own asset, schedule, cash sleeve, and color.
             </p>
 
             <div style={{ display: "grid", gap: 12, marginBottom: 16, minWidth: 0 }}>
@@ -943,8 +1015,9 @@ const inputStyle = {
   borderRadius: 8,
   color: "var(--text-primary)",
   padding: "10px 11px",
-  fontFamily: "'JetBrains Mono', monospace",
   fontSize: 13,
+  fontFamily: "inherit",
+  lineHeight: 1.25,
   outline: "none",
 };
 
@@ -957,7 +1030,7 @@ const primaryButtonStyle = {
   fontWeight: 700,
   padding: "9px 16px",
   cursor: "pointer",
-  fontFamily: "'DM Sans', sans-serif",
+  fontFamily: "inherit",
 };
 
 const secondaryButtonStyle = {
@@ -969,28 +1042,41 @@ const secondaryButtonStyle = {
   fontWeight: 700,
   padding: "8px 14px",
   cursor: "pointer",
-  fontFamily: "'DM Sans', sans-serif",
+  fontFamily: "inherit",
 };
 
 const miniButtonStyle = {
-  border: "1px solid var(--divider)",
+  border: "1px solid rgba(85,98,122,0.14)",
   borderRadius: 7,
-  background: "var(--input-bg)",
+  background: "rgba(255,255,255,0.50)",
   color: "var(--text-primary)",
   fontSize: 11,
-  fontWeight: 700,
+  fontWeight: 650,
   minWidth: 38,
   padding: "6px 7px",
   cursor: "pointer",
-  fontFamily: "'DM Sans', sans-serif",
+  fontFamily: "inherit",
   whiteSpace: "nowrap",
 };
 
 const fieldLabelStyle = {
   display: "block",
-  fontSize: 11,
+  fontSize: 10.5,
   color: "var(--text-muted)",
-  textTransform: "uppercase",
-  letterSpacing: "0.06em",
-  marginBottom: 6,
+  fontWeight: 650,
+  letterSpacing: "0.02em",
+  marginBottom: 5,
+};
+
+const presetOptionStyle = {
+  minWidth: 0,
+  border: "1px solid rgba(85,98,122,0.10)",
+  borderRadius: 6,
+  padding: "7px 8px",
+  color: "var(--text-primary)",
+  fontSize: 11,
+  fontWeight: 600,
+  textAlign: "left",
+  cursor: "pointer",
+  fontFamily: "inherit",
 };

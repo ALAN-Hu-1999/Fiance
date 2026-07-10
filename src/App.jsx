@@ -17,22 +17,21 @@ export default function App() {
       className="app-shell"
       style={{
         "--bg": "#F5F7FB",
-        "--card": "rgba(255,255,255,0.62)",
-        "--card-inner": "rgba(255,255,255,0.48)",
-        "--bar-bg": "rgba(120,130,150,0.12)",
-        "--divider": "rgba(35,43,58,0.13)",
+        "--card": "rgba(255,255,255,0.68)",
+        "--card-inner": "rgba(255,255,255,0.42)",
+        "--bar-bg": "rgba(120,130,150,0.10)",
+        "--divider": "rgba(35,43,58,0.11)",
         "--text-primary": "#17181C",
         "--text-muted": "#667085",
-        "--input-bg": "rgba(255,255,255,0.66)",
-        "--input-border": "rgba(85,98,122,0.2)",
+        "--input-bg": "rgba(255,255,255,0.58)",
+        "--input-border": "rgba(85,98,122,0.16)",
         "--accent": "#007AFF",
         "--accent-2": "#5AC8FA",
         "--danger": "#FF3B30",
         "--success": "#34C759",
         "--warning": "#FF9F0A",
         minHeight: "100vh",
-        background:
-          "radial-gradient(circle at 18% 10%, rgba(90,200,250,0.36), transparent 32%), radial-gradient(circle at 78% 0%, rgba(255,45,85,0.18), transparent 28%), radial-gradient(circle at 50% 86%, rgba(52,199,89,0.16), transparent 34%), linear-gradient(180deg, #FBFCFF 0%, #EFF3FA 46%, #F9FAFE 100%)",
+        background: "linear-gradient(180deg, #F8FAFD 0%, #EEF3F9 48%, #F8FAFC 100%)",
         fontFamily:
           "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif",
         color: "var(--text-primary)",
@@ -57,9 +56,7 @@ export default function App() {
           position: fixed;
           inset: 0;
           pointer-events: none;
-          background:
-            linear-gradient(115deg, rgba(255,255,255,0.46), transparent 36%),
-            radial-gradient(circle at 8% 78%, rgba(0,122,255,0.12), transparent 24%);
+          background: linear-gradient(115deg, rgba(255,255,255,0.46), transparent 42%);
           mix-blend-mode: screen;
         }
         .glass-nav,
@@ -74,6 +71,9 @@ export default function App() {
         .app-shell input,
         .app-shell select {
           font: inherit;
+        }
+        .app-shell input[type="number"] {
+          font-variant-numeric: tabular-nums;
         }
         .app-shell button {
           box-shadow: 0 8px 20px rgba(15,23,42,0.06), inset 0 1px 0 rgba(255,255,255,0.55);
