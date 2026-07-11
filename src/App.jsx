@@ -33,7 +33,9 @@ export default function App() {
         minHeight: "100vh",
         background: "linear-gradient(180deg, #F8FAFD 0%, #EEF3F9 48%, #F8FAFC 100%)",
         fontFamily:
-          "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif",
+          "-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Segoe UI Variable', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+        fontKerning: "normal",
+        textRendering: "optimizeLegibility",
         color: "var(--text-primary)",
       }}
     >
@@ -50,6 +52,13 @@ export default function App() {
         .app-shell {
           position: relative;
           overflow-x: hidden;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+          font-synthesis: none;
+        }
+        .app-shell * {
+          font-family: inherit !important;
+          letter-spacing: 0 !important;
         }
         .app-shell::before {
           content: "";
@@ -72,7 +81,8 @@ export default function App() {
         .app-shell select {
           font: inherit;
         }
-        .app-shell input[type="number"] {
+        .app-shell input[type="number"],
+        .app-shell table {
           font-variant-numeric: tabular-nums;
         }
         .app-shell button {
@@ -91,6 +101,11 @@ export default function App() {
         .app-shell h2,
         .app-shell h3 {
           letter-spacing: 0;
+          font-weight: 650 !important;
+          line-height: 1.15;
+        }
+        .app-shell p {
+          line-height: 1.5;
         }
         .app-shell table tr:hover {
           background: rgba(255,255,255,0.36) !important;
