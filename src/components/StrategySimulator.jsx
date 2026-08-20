@@ -16,15 +16,19 @@ function createStrategyConfig(overrides = {}) {
     altCashAsset: overrides.altCashAsset || "none",
     altCashSellMultiplier: overrides.altCashSellMultiplier ?? 1,
     expenseRatio: overrides.expenseRatio ?? 0,
+    defensiveCorePct: overrides.defensiveCorePct ?? 80,
+    trendMonths: overrides.trendMonths ?? 10,
+    drawdownTriggerPct: overrides.drawdownTriggerPct ?? 10,
     color: overrides.color || baseStrategy.color,
     collapsed: overrides.collapsed ?? false,
   };
 }
 
 const DEFAULT_STRATEGY_CONFIGS = [
-  createStrategyConfig({ id: "cfg-buy-hold-spy", name: "SPY Buy & Hold", strategyKey: "buy_hold", ticker: "SPY", color: "#34C759" }),
-  createStrategyConfig({ id: "cfg-smart-dca-spy", name: "SPY 36M DCA + Cash", strategyKey: "smart_dca_36m", ticker: "SPY", altCashAsset: "cash", color: "#5AC8FA" }),
-  createStrategyConfig({ id: "cfg-avg-cost-qqq", name: "QQQ Avg Cost + Gold", strategyKey: "average_cost_smart_dca", ticker: "QQQ", altCashAsset: "gold", color: "#AF52DE" }),
+  createStrategyConfig({ id: "cfg-buy-hold-qqc", name: "QQC Buy & Hold", strategyKey: "buy_hold", ticker: "QQC.TO", initialCapital: 0, recurringAmount: 100, recurringFrequency: "weekly", expenseRatio: 0.21, color: "#34C759" }),
+  createStrategyConfig({ id: "cfg-trend-defense-qqc", name: "QQC 80/20 Defense", strategyKey: "trend_defense_80_20", ticker: "QQC.TO", initialCapital: 0, recurringAmount: 100, recurringFrequency: "weekly", altCashAsset: "cash", expenseRatio: 0.21, color: "#007AFF" }),
+  createStrategyConfig({ id: "cfg-smart-dca-qqc", name: "QQC 36M DCA + Cash", strategyKey: "smart_dca_36m", ticker: "QQC.TO", initialCapital: 0, recurringAmount: 100, recurringFrequency: "weekly", altCashAsset: "cash", expenseRatio: 0.21, color: "#5AC8FA", collapsed: true }),
+  createStrategyConfig({ id: "cfg-smart-defense-qqc", name: "QQC 36M + Defense", strategyKey: "smart_dca_trend_defense", ticker: "QQC.TO", initialCapital: 0, recurringAmount: 100, recurringFrequency: "weekly", altCashAsset: "cash", expenseRatio: 0.21, color: "#0A84FF", collapsed: true }),
 ];
 
 function formatPct(value) {
@@ -307,6 +311,28 @@ function StrategyConfigCard({ config, index, canRemove, onChange, onRemove, onDu
           1.00x uses the default sell table. Increase for faster AC selling on dip-buy signals.
         </span>
       </label>
+      {["trend_defense_80_20", "smart_dca_trend_defense"].includes(config.strategyKey) && (
+        <div style={{ marginTop: 10, padding: 10, borderRadius: 8, background: "rgba(0,122,255,0.07)", border: "1px solid rgba(0,122,255,0.14)" }}>
+          <div style={{ fontSize: 11, fontWeight: 750, color: "var(--accent)", marginBottom: 9 }}>Trend defense rules</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
+            <label>
+              <span style={fieldLabelStyle}>Core held %</span>
+              <input type="number" min="0" max="100" step="5" value={config.defensiveCorePct} onChange={(event) => update({ defensiveCorePct: event.target.value })} style={inputStyle} />
+            </label>
+            <label>
+              <span style={fieldLabelStyle}>Trend months</span>
+              <input type="number" min="2" max="24" step="1" value={config.trendMonths} onChange={(event) => update({ trendMonths: event.target.value })} style={inputStyle} />
+            </label>
+          </div>
+          <label style={{ display: "block", marginTop: 9 }}>
+            <span style={fieldLabelStyle}>Drawdown trigger %</span>
+            <input type="number" min="0" max="50" step="1" value={config.drawdownTriggerPct} onChange={(event) => update({ drawdownTriggerPct: event.target.value })} style={inputStyle} />
+          </label>
+          <div style={{ marginTop: 7, fontSize: 11, lineHeight: 1.4, color: "var(--text-muted)" }}>
+            Month-end only. Two defensive confirmations step from 100% to {((100 + Number(config.defensiveCorePct || 80)) / 2).toFixed(0)}% to {Number(config.defensiveCorePct || 80).toFixed(0)}%; two recovery confirmations restore exposure.
+          </div>
+        </div>
+      )}
       <label style={{ display: "block", marginTop: 10 }}>
         <span style={fieldLabelStyle}>Annual fee %</span>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 70px", gap: 10, alignItems: "center" }}>
@@ -602,10 +628,10 @@ function ResultTable({ results, playbackIndex }) {
 
   return (
     <div style={{ background: "var(--card)", borderRadius: 12, border: "1px solid var(--divider)", overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 980 }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 1180 }}>
         <thead>
           <tr>
-            {["Strategy", "Today Buy", "AC Value", "AC Sell", "Value", "Invested", "Net Gain", "Return", "CAGR", "Max DD", "Exposure"].map((label) => (
+            {["Strategy", "Today Buy", "Reserve", "Defense Cash", "AC Sell", "Value", "Invested", "Net Gain", "Return", "CAGR", "Max DD", "Now Equity", "Avg Exposure"].map((label) => (
               <th key={label} style={{ padding: "13px 14px", textAlign: label === "Strategy" ? "left" : "right", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", borderBottom: "1px solid var(--divider)" }}>
                 {label}
               </th>
@@ -621,6 +647,7 @@ function ResultTable({ results, playbackIndex }) {
               </td>
               <td style={{ padding: "14px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: row.todayBuy > 0 ? "var(--success)" : "var(--text-muted)" }}>{formatMoney(row.todayBuy)}</td>
               <td style={{ padding: "14px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 13 }}>{formatMoney(row.alternativeCash)}</td>
+              <td style={{ padding: "14px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 13 }}>{formatMoney(row.tacticalCash)}</td>
               <td style={{ padding: "14px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: row.alternativeCashSale > 0 ? "var(--success)" : "var(--text-muted)" }}>{formatMoney(row.alternativeCashSale)}</td>
               <td style={{ padding: "14px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 13 }}>{formatMoney(row.finalValue)}</td>
               <td style={{ padding: "14px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 13 }}>{formatMoney(row.totalContributed)}</td>
@@ -628,6 +655,7 @@ function ResultTable({ results, playbackIndex }) {
               <td style={{ padding: "14px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: metricColor(row.totalReturn) }}>{formatPct(row.totalReturn)}</td>
               <td style={{ padding: "14px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: metricColor(row.cagr) }}>{formatPct(row.cagr)}</td>
               <td style={{ padding: "14px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: "var(--danger)" }}>{formatPct(row.maxDrawdown)}</td>
+              <td style={{ padding: "14px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 13 }}>{formatPct(row.currentPosition).replace("+", "")}</td>
               <td style={{ padding: "14px", textAlign: "right", fontFamily: "'JetBrains Mono', monospace", fontSize: 13 }}>{formatPct(row.exposure).replace("+", "")}</td>
             </tr>
           ))}
@@ -645,6 +673,7 @@ function buildPlaybackRow(result, playbackIndex) {
   const finalValue = point?.value ?? result.finalValue;
   const todayBuy = point?.contribution ?? 0;
   const alternativeCash = point?.alternativeCash ?? 0;
+  const tacticalCash = point?.tacticalCash ?? 0;
   const alternativeCashSale = point?.alternativeCashSale ?? 0;
   const netGain = finalValue - totalContributed;
   const totalReturn = totalContributed === 0 ? 0 : netGain / totalContributed;
@@ -652,14 +681,15 @@ function buildPlaybackRow(result, playbackIndex) {
   const cagr = Math.pow(Math.max(finalValue / Math.max(totalContributed, 1), 0), 1 / years) - 1;
   const maxDrawdown = Math.min(0, ...visiblePoints.map((item) => item.drawdown ?? 0));
   const exposure = index === 0
-    ? point?.position ?? 0
-    : visiblePoints.slice(1).filter((item) => item.position > 0).length / index;
+    ? point?.actualPosition ?? point?.position ?? 0
+    : visiblePoints.slice(1).reduce((sum, item) => sum + (item.actualPosition ?? item.position ?? 0), 0) / index;
 
   return {
     ...result,
     finalValue,
     todayBuy,
     alternativeCash,
+    tacticalCash,
     alternativeCashSale,
     totalContributed,
     netGain,
@@ -667,6 +697,7 @@ function buildPlaybackRow(result, playbackIndex) {
     cagr,
     maxDrawdown,
     exposure,
+    currentPosition: point?.actualPosition ?? point?.position ?? 0,
   };
 }
 
@@ -737,6 +768,13 @@ export default function StrategySimulator() {
   const bestResult = results.length
     ? [...results].sort((a, b) => b.totalReturn - a.totalReturn)[0]
     : null;
+  const defenseResult = results.find((result) => result.config?.strategyKey === "trend_defense_80_20")
+    || results.find((result) => result.config?.strategyKey === "smart_dca_trend_defense");
+  const benchmarkResult = defenseResult
+    ? results.find((result) => result.config?.strategyKey === "buy_hold" && result.ticker === defenseResult.ticker)
+    : null;
+  const defenseExcess = defenseResult && benchmarkResult ? defenseResult.netGain - benchmarkResult.netGain : null;
+  const drawdownImprovement = defenseResult && benchmarkResult ? defenseResult.maxDrawdown - benchmarkResult.maxDrawdown : null;
   const latestPoint = bestResult?.points[Math.min(playbackIndex, bestResult.points.length - 1)];
   const progressPct = results.length > 0 ? (Math.min(playbackIndex, priceHistory.length - 1) / Math.max(priceHistory.length - 1, 1)) * 100 : 0;
 
@@ -792,6 +830,12 @@ export default function StrategySimulator() {
     ]);
   };
 
+  const setLookbackYears = (years) => {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() - years);
+    setStartDate(date.toISOString().split("T")[0]);
+  };
+
   const runSimulation = async () => {
     setLoading(true);
     setError("");
@@ -834,6 +878,9 @@ export default function StrategySimulator() {
           altCashAsset: config.altCashAsset,
           altCashSellMultiplier: Number(config.altCashSellMultiplier) || 0,
           expenseRatio: Number(config.expenseRatio) || 0,
+          defensiveCorePct: Number(config.defensiveCorePct) || 80,
+          trendMonths: Number(config.trendMonths) || 10,
+          drawdownTriggerPct: Number(config.drawdownTriggerPct) || 10,
           altCashHistory,
         });
 
@@ -870,6 +917,9 @@ export default function StrategySimulator() {
             </h1>
             <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "5px 0 0", maxWidth: 680, lineHeight: 1.45 }}>
               Pulls updated daily adjusted-close history and compares rule-based strategy equity curves from your start date through the latest available market session.
+            </p>
+            <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "5px 0 0", maxWidth: 680, lineHeight: 1.45 }}>
+              QQC.TO starts in 2021. For a longer ETF test use QQQ; ^NDX provides a longer price-index proxy but does not include fund fees or distributions.
             </p>
           </div>
           {lastUpdated && (
@@ -909,6 +959,13 @@ export default function StrategySimulator() {
                 style={inputStyle}
               />
             </label>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, margin: "-4px 0 12px" }}>
+              {[5, 10, 20, 30].map((years) => (
+                <button key={years} type="button" onClick={() => setLookbackYears(years)} style={{ ...miniButtonStyle, minWidth: 0 }}>
+                  {years}Y
+                </button>
+              ))}
+            </div>
             <p style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.45, margin: "0 0 14px" }}>
               Each strategy can have its own asset, schedule, cash sleeve, and color.
             </p>
@@ -960,6 +1017,14 @@ export default function StrategySimulator() {
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                   <SummaryCard label="Price Observations" value={priceHistory.length.toLocaleString()} sub={`${priceHistory[0]?.date} to ${priceHistory[priceHistory.length - 1]?.date}`} />
                   <SummaryCard label="Best Strategy" value={bestResult.name} sub={`${formatMoney(bestResult.netGain)} gain`} color={bestResult.color} />
+                  {defenseExcess !== null && (
+                    <SummaryCard
+                      label="Defense vs B&H"
+                      value={formatMoney(defenseExcess)}
+                      sub={`Max DD change ${formatPct(drawdownImprovement)}`}
+                      color={metricColor(defenseExcess)}
+                    />
+                  )}
                   <SummaryCard label="Config Count" value={results.length.toLocaleString()} sub="Independent custom strategy runs" />
                   <SummaryCard label="Current Frame" value={latestPoint ? formatMoney(latestPoint.value) : "-"} sub={latestPoint?.date} color={bestResult.color} />
                 </div>

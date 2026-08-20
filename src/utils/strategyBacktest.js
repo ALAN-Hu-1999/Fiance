@@ -1,4 +1,4 @@
-import { fetchYahooFinanceData } from "./ff5_math";
+import { fetchYahooFinanceData } from "./ff5_math.js";
 
 const TRADING_DAYS = 252;
 const SMART_DCA_LOOKBACK_MONTHS = 36;
@@ -14,6 +14,8 @@ export const ALT_CASH_ASSETS = [
 ];
 
 export const MARKET_INDEX_PRESETS = [
+  { label: "Invesco Nasdaq-100 CAD", symbol: "QQC.TO", aliases: ["QQC", "QQCTO", "QQC.TO"] },
+  { label: "Invesco QQQ", symbol: "QQQ", aliases: ["QQQETF"] },
   { label: "Bitcoin", symbol: "BTC-USD", aliases: ["BTC", "BITCOIN", "BTCUSD", "BTC/USD"] },
   { label: "Ethereum", symbol: "ETH-USD", aliases: ["ETH", "ETHEREUM", "ETHUSD", "ETH/USD"] },
   { label: "S&P 500", symbol: "^GSPC", aliases: ["SP500", "S&P500", "SPX"] },
@@ -52,6 +54,18 @@ export const STRATEGIES = [
     name: "Buy & Hold",
     description: "Fully invested from the first available trading day.",
     color: "#34C759",
+  },
+  {
+    key: "trend_defense_80_20",
+    name: "80/20 Trend Defense",
+    description: "Keeps scheduled DCA running while a month-end 10M trend rule can move up to 20% into the selected cash sleeve.",
+    color: "#007AFF",
+  },
+  {
+    key: "smart_dca_trend_defense",
+    name: "36M DCA + 80/20 Defense",
+    description: "Combines 36-month percentile DCA with the month-end trend-defense overlay while preserving an 80% core.",
+    color: "#0A84FF",
   },
   {
     key: "sma_20_50",
@@ -162,7 +176,7 @@ export function runStrategyBacktests(priceHistory, strategyKeys, initialCapital 
       throw new Error(`Unknown strategy: ${strategyKey}`);
     }
 
-    const signals = buildSignals(priceHistory, strategyKey);
+    const signals = buildSignals(priceHistory, strategyKey, options);
     const points = [];
     let equity = initialCapital;
     let peak = initialCapital;
@@ -173,6 +187,10 @@ export function runStrategyBacktests(priceHistory, strategyKeys, initialCapital 
     let syntheticShares = priceHistory[0].price > 0 ? initialCapital / priceHistory[0].price : 0;
     let costBasis = initialCapital;
     let averageCost = syntheticShares > 0 ? costBasis / syntheticShares : null;
+    const usesTrendDefense = ["trend_defense_80_20", "smart_dca_trend_defense"].includes(strategyKey);
+    let tacticalInvested = initialCapital;
+    let tacticalCash = 0;
+    let lastTargetPosition = signals[0];
     const dailyReturns = [];
 
     points.push({
@@ -182,12 +200,14 @@ export function runStrategyBacktests(priceHistory, strategyKeys, initialCapital 
       netGain: roundMoney(equity - totalContributed),
       drawdown: 0,
       position: signals[0],
+      actualPosition: signals[0],
       contribution: 0,
       contributionMultiplier: 0,
       pricePercentile: null,
       realizedVolatility: null,
       averageCost: averageCost === null ? null : roundMoney(averageCost),
       alternativeCash: 0,
+      tacticalCash: 0,
       alternativeCashDeposit: 0,
       alternativeCashSale: 0,
     });
@@ -204,6 +224,12 @@ export function runStrategyBacktests(priceHistory, strategyKeys, initialCapital 
       const dcaSignal = getContributionSignal(priceHistory, i, strategyKey, averageCost);
       const baseContribution = getContributionForDate(priceHistory, i, recurringAmount, recurringFrequency);
       const position = signals[i - 1];
+      if (usesTrendDefense && position !== lastTargetPosition) {
+        const tacticalValue = tacticalInvested + tacticalCash;
+        tacticalInvested = tacticalValue * position;
+        tacticalCash = tacticalValue * (1 - position);
+        lastTargetPosition = position;
+      }
       const canContribute = strategyKey === "trend_filtered_smart_dca" ? position > 0 : true;
       const desiredContribution = canContribute ? baseContribution * dcaSignal.multiplier : 0;
       let contribution = desiredContribution;
@@ -221,7 +247,12 @@ export function runStrategyBacktests(priceHistory, strategyKeys, initialCapital 
       }
 
       if (contribution > 0) {
-        equity += contribution;
+        if (usesTrendDefense) {
+          tacticalInvested += contribution;
+          equity = tacticalInvested + tacticalCash;
+        } else {
+          equity += contribution;
+        }
         if (!altCashEnabled) {
           totalContributed += contribution;
         }
@@ -233,16 +264,24 @@ export function runStrategyBacktests(priceHistory, strategyKeys, initialCapital 
       }
 
       const assetReturn = previous === 0 ? 0 : (current - previous) / previous;
-      const grossStrategyReturn = position * assetReturn;
-      const strategyReturn = grossStrategyReturn - dailyExpenseRate;
-
-      equity *= 1 + strategyReturn;
+      let strategyReturn;
+      if (usesTrendDefense) {
+        const tacticalValueBeforeReturn = tacticalInvested + tacticalCash;
+        tacticalInvested *= 1 + assetReturn - dailyExpenseRate;
+        tacticalCash *= 1 + getAltCashReturn(altPriceMap, previousDate, currentDate);
+        equity = tacticalInvested + tacticalCash;
+        strategyReturn = tacticalValueBeforeReturn > 0 ? equity / tacticalValueBeforeReturn - 1 : 0;
+      } else {
+        strategyReturn = position * assetReturn - dailyExpenseRate;
+        equity *= 1 + strategyReturn;
+      }
       const totalPortfolioValue = equity + alternativeCash;
       peak = Math.max(peak, totalPortfolioValue);
       const drawdown = peak === 0 ? 0 : totalPortfolioValue / peak - 1;
       maxDrawdown = Math.min(maxDrawdown, drawdown);
       dailyReturns.push(strategyReturn);
-      if (position > 0) investedDays += 1;
+      const actualPosition = usesTrendDefense && equity > 0 ? tacticalInvested / equity : position;
+      investedDays += actualPosition;
 
       points.push({
         date: priceHistory[i].date,
@@ -251,12 +290,14 @@ export function runStrategyBacktests(priceHistory, strategyKeys, initialCapital 
         netGain: roundMoney(totalPortfolioValue - totalContributed),
         drawdown,
         position,
+        actualPosition,
         contribution: roundMoney(contribution),
         contributionMultiplier: dcaSignal.multiplier,
         pricePercentile: dcaSignal.pricePercentile,
         realizedVolatility: dcaSignal.realizedVolatility,
         averageCost: averageCost === null ? null : roundMoney(averageCost),
         alternativeCash: roundMoney(alternativeCash),
+        tacticalCash: roundMoney(tacticalCash),
         alternativeCashDeposit: roundMoney(alternativeCashDeposit),
         alternativeCashSale: roundMoney(alternativeCashSale),
       });
@@ -322,7 +363,7 @@ function getAlternativeCashPlan(strategyKey, dcaSignal, baseContribution, desire
 }
 
 function usesPercentileAlternativeCash(strategyKey) {
-  return ["smart_dca_36m", "trend_filtered_smart_dca", "dual_regime_accumulator"].includes(strategyKey);
+  return ["smart_dca_36m", "smart_dca_trend_defense", "trend_filtered_smart_dca", "dual_regime_accumulator"].includes(strategyKey);
 }
 
 function getPercentileAlternativeCashPlan(pricePercentile, baseContribution, sellMultiplier = 1) {
@@ -386,7 +427,7 @@ function getContributionForDate(priceHistory, index, amount, frequency) {
   return 0;
 }
 
-function buildSignals(priceHistory, strategyKey) {
+function buildSignals(priceHistory, strategyKey, options = {}) {
   switch (strategyKey) {
     case "buy_hold":
     case "smart_dca_36m":
@@ -394,6 +435,9 @@ function buildSignals(priceHistory, strategyKey) {
     case "average_cost_smart_dca":
     case "dual_regime_accumulator":
       return priceHistory.map(() => 1);
+    case "trend_defense_80_20":
+    case "smart_dca_trend_defense":
+      return buildTrendDefenseSignals(priceHistory, options);
     case "trend_filtered_smart_dca":
       return movingAverageCrossover(priceHistory, 50, 200);
     case "sma_20_50":
@@ -407,6 +451,63 @@ function buildSignals(priceHistory, strategyKey) {
     default:
       return priceHistory.map(() => 0);
   }
+}
+
+export function buildTrendDefenseSignals(priceHistory, options = {}) {
+  const coreWeight = clamp((Number(options.defensiveCorePct) || 80) / 100, 0, 1);
+  const trendMonths = Math.max(Math.round(Number(options.trendMonths) || 10), 2);
+  const drawdownTrigger = Math.max(Number(options.drawdownTriggerPct) || 10, 0) / 100;
+  const monthlyCloses = [];
+  const signals = priceHistory.map(() => 1);
+  const stepSize = (1 - coreWeight) / 2;
+  let defenseLevel = 0;
+  let belowCount = 0;
+  let aboveCount = 0;
+  let currentWeight = 1;
+
+  for (let index = 0; index < priceHistory.length; index++) {
+    signals[index] = currentWeight;
+    if (!isMonthEnd(priceHistory, index)) continue;
+
+    monthlyCloses.push(priceHistory[index].price);
+    if (monthlyCloses.length < trendMonths) continue;
+
+    const movingAverage = mean(monthlyCloses.slice(-trendMonths));
+    const lookbackStart = Math.max(0, index - TRADING_DAYS);
+    let trailingPeak = priceHistory[lookbackStart].price;
+    for (let i = lookbackStart + 1; i <= index; i++) {
+      trailingPeak = Math.max(trailingPeak, priceHistory[i].price);
+    }
+
+    const drawdown = trailingPeak > 0 ? priceHistory[index].price / trailingPeak - 1 : 0;
+    const belowTrend = priceHistory[index].price < movingAverage && drawdown <= -drawdownTrigger;
+    const aboveTrend = priceHistory[index].price >= movingAverage;
+
+    if (belowTrend) {
+      belowCount += 1;
+      aboveCount = 0;
+      if (belowCount === 1 && defenseLevel === 0) defenseLevel = 1;
+      else if (belowCount >= 2 && defenseLevel === 1) defenseLevel = 2;
+    } else if (aboveTrend) {
+      aboveCount += 1;
+      belowCount = 0;
+      if (aboveCount === 1 && defenseLevel === 2) defenseLevel = 1;
+      else if (aboveCount >= 2 && defenseLevel === 1) defenseLevel = 0;
+    } else {
+      belowCount = 0;
+      aboveCount = 0;
+    }
+
+    currentWeight = clamp(1 - defenseLevel * stepSize, coreWeight, 1);
+    signals[index] = currentWeight;
+  }
+
+  return signals;
+}
+
+function isMonthEnd(priceHistory, index) {
+  if (index === priceHistory.length - 1) return true;
+  return priceHistory[index].date.slice(0, 7) !== priceHistory[index + 1].date.slice(0, 7);
 }
 
 function getContributionSignal(priceHistory, index, strategyKey, averageCost) {
@@ -444,7 +545,7 @@ function getContributionSignal(priceHistory, index, strategyKey, averageCost) {
     };
   }
 
-  if (strategyKey !== "smart_dca_36m" && strategyKey !== "trend_filtered_smart_dca") {
+  if (!["smart_dca_36m", "smart_dca_trend_defense", "trend_filtered_smart_dca"].includes(strategyKey)) {
     return { multiplier: 1, pricePercentile: null, realizedVolatility: null };
   }
 
